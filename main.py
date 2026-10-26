@@ -50,9 +50,9 @@ for next_url in same_domain_urls:
 
 print(f"同一ドメインの重複しないURL数：{len(same_domain_urls)}")
 
-# 動作確認として、リンク一覧から最大10件を処理する
+# リンク一覧に追加されたURLを順番に処理する
 index = 0
-while index < len(same_domain_urls) and index < 10:
+while index < len(same_domain_urls):
     page_url = same_domain_urls[index]
     index += 1
     # すでにタイトルを保存したページは飛ばす
@@ -60,8 +60,21 @@ while index < len(same_domain_urls) and index < 10:
         continue
 
     time.sleep(1)
-    res = requests.get(page_url, timeout=30)
-    res.raise_for_status()
+    try:
+        res = requests.get(page_url, timeout=30)
+        res.raise_for_status()
+    except requests.RequestException as error:
+        print(f"取得失敗：{page_url}：{error}")
+        continue
+
+    # 別ドメインへ転送された場合は解析しない
+    if urlparse(res.url).netloc != domain:
+        continue
+
+    # HTML以外のファイルは解析しない
+    content_type = res.headers.get('Content-Type', '').lower()
+    if 'text/html' not in content_type:
+        continue
 
     html_soup = BeautifulSoup(res.content, 'html.parser')
 
